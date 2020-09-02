@@ -1,57 +1,44 @@
 // import AppError from '../errors/AppError';
+import { getRepository } from 'typeorm';
 import Transaction from '../models/Transaction';
-import TransactionsRepository from '../repositories/TransactionsRepository';
-import CategoriesRepository from '../repositories/CategoriesRepository';
-
-interface Category {
-  id: any;
-  title: string;
-}
+import Category from '../models/Category';
 
 interface Request {
   title: string;
   value: number;
   type: 'outcome' | 'income';
-  category: Category;
+  category: string;
 }
 
 class CreateTransactionService {
-  private transactionsRepository: TransactionsRepository;
-  private categoriesRepository: CategoriesRepository;
-
-  constructor(
-    transactionsRepository: TransactionsRepository,
-    categoriesRepository: CategoriesRepository,
-  ) {
-    this.transactionsRepository = transactionsRepository;
-    this.categoriesRepository = categoriesRepository;
-  }
-
   public async execute({
     title,
     value,
     type,
     category,
   }: Request): Promise<Transaction> {
-    const categoryFound = await this.categoriesRepository.findByTitle(title);
+    const categoriesRepository = getRepository(Category);
+    const transactionsRepository = getRepository(Transaction);
+    let categoryToSave: Category;
 
-    if (categoryFound) {
-      category.id = categoryFound.id;
+    const categoryExists = await categoriesRepository.findOne({
+      where: { title: category },
+    });
+
+    if (!categoryExists) {
+      categoryToSave = categoriesRepository.create({ title: category });
     } else {
-      const categoryCreated = this.categoriesRepository.create({
-        title: category.title,
-      });
-      category.id = categoryCreated.id;
+      categoryToSave = categoryExists;
     }
 
-    const transaction = this.transactionsRepository.create({
+    const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id: category.id,
+      category_id: categoryToSave.id,
     });
 
-    return await this.transactionsRepository.save(transaction);
+    return await transactionsRepository.save(transaction);
   }
 }
 
