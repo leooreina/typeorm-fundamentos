@@ -12,27 +12,29 @@ interface Request {
 
 class CreateTransactionService {
   public async execute({
-    title,
+    title: title_transaction,
     value,
     type,
-    category,
+    category: category_title,
   }: Request): Promise<Transaction> {
     const categoriesRepository = getRepository(Category);
     const transactionsRepository = getRepository(Transaction);
     let categoryToSave: Category;
 
-    const categoryExists = await categoriesRepository.findOne({
-      where: { title: category },
+    const categoryExists:
+      | Category
+      | undefined = await categoriesRepository.findOne({
+      where: { title: category_title },
     });
 
     if (!categoryExists) {
-      categoryToSave = categoriesRepository.create({ title: category });
+      categoryToSave = categoriesRepository.create({ title: category_title });
     } else {
       categoryToSave = categoryExists;
     }
 
     const transaction = transactionsRepository.create({
-      title,
+      title: title_transaction,
       value,
       type,
       category_id: categoryToSave.id,
