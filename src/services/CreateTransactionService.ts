@@ -1,7 +1,7 @@
 // import AppError from '../errors/AppError';
 import { getRepository } from 'typeorm';
 import Transaction from '../models/Transaction';
-import Category from '../models/Category';
+import CategoriesRepository from '../repositories/CategoriesRepository';
 
 interface Request {
   title: string;
@@ -11,31 +11,38 @@ interface Request {
 }
 
 class CreateTransactionService {
+  public categoriesRepository: CategoriesRepository;
+
+  constructor(public _categoriesRepository: CategoriesRepository) {
+    this.categoriesRepository = _categoriesRepository;
+  }
+
   public async execute({
     title,
     value,
     type,
     category,
   }: Request): Promise<Transaction> {
-    const categoriesRepository = getRepository(Category);
     const transactionsRepository = getRepository(Transaction);
-    let categoryToSave: Category;
+    const categoryExists = await this.categoriesRepository.findByTitle(
+      category,
+    );
+    let category_id: string;
 
-    const categoryExists = await categoriesRepository.findOne({
-      where: { title: category },
-    });
-
-    if (!categoryExists) {
-      categoryToSave = categoriesRepository.create({ title: category });
+    if (categoryExists) {
+      category_id = categoryExists.id;
     } else {
-      categoryToSave = categoryExists;
+      const categoryCreated = await this.categoriesRepository.save({
+        title: category,
+      });
+      category_id = categoryCreated.id;
     }
 
     const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id: categoryToSave.id,
+      category_id,
     });
 
     return await transactionsRepository.save(transaction);
