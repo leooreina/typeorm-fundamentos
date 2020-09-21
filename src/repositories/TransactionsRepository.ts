@@ -26,6 +26,15 @@ class TransactionsRepository extends Repository<Transaction> {
       total: sumBalance('income') - sumBalance('outcome'),
     };
   }
+
+  public async getAllTransactions(): Promise<Transaction[]> {
+    return await this.find();
+  }
+
+  public async deleteTransaction(id: string): Promise<Transaction> {
+    const transaction = await this.findByIds({ id });
+    return this.remove(transaction[0]);
+  }
 }
 
 export default TransactionsRepository;
