@@ -1,7 +1,7 @@
-// import AppError from '../errors/AppError';
-import { getRepository } from 'typeorm';
+import AppError from '../errors/AppError';
 import Transaction from '../models/Transaction';
 import CategoriesRepository from '../repositories/CategoriesRepository';
+import TransactionsRepository from '../repositories/TransactionsRepository';
 
 interface Request {
   title: string;
@@ -12,9 +12,14 @@ interface Request {
 
 class CreateTransactionService {
   public categoriesRepository: CategoriesRepository;
+  public transactionsRepository: TransactionsRepository;
 
-  constructor(public _categoriesRepository: CategoriesRepository) {
+  constructor(
+    public _categoriesRepository: CategoriesRepository,
+    public _transactionsRepository: TransactionsRepository,
+  ) {
     this.categoriesRepository = _categoriesRepository;
+    this.transactionsRepository = _transactionsRepository;
   }
 
   public async execute({
@@ -23,7 +28,12 @@ class CreateTransactionService {
     type,
     category,
   }: Request): Promise<Transaction> {
-    const transactionsRepository = getRepository(Transaction);
+    const balance = await this.transactionsRepository.getBalance(type, value);
+
+    if (balance.total < 0) {
+      throw new AppError('Outcome is above income total.');
+    }
+
     const categoryExists = await this.categoriesRepository.findByTitle(
       category,
     );
@@ -38,14 +48,14 @@ class CreateTransactionService {
       category_id = categoryCreated.id;
     }
 
-    const transaction = transactionsRepository.create({
+    const transaction = this.transactionsRepository.create({
       title,
       value,
       type,
       category_id,
     });
 
-    return await transactionsRepository.save(transaction);
+    return await this.transactionsRepository.save(transaction);
   }
 }
 

@@ -12,7 +12,7 @@ const transactionsRouter = Router();
 transactionsRouter.get('/', async (request: Request, response: Response) => {
   const transactionsRepository = getCustomRepository(TransactionsRepository);
   const transactions = await transactionsRepository.getAllTransactions();
-  const balance = await transactionsRepository.getBalance(transactions);
+  const balance = await transactionsRepository.getBalance();
 
   return response.json({
     transactions,
@@ -24,7 +24,11 @@ transactionsRouter.post('/', async (request: Request, response: Response) => {
   const { title, value, type, category } = request.body;
 
   const categoriesRepository = getCustomRepository(CategoriesRepository);
-  const createTransaction = new CreateTransactionService(categoriesRepository);
+  const transactionsRepository = getCustomRepository(TransactionsRepository);
+  const createTransaction = new CreateTransactionService(
+    categoriesRepository,
+    transactionsRepository,
+  );
 
   const transaction = await createTransaction.execute({
     title,
